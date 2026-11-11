@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Trading Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --ink:#14302b;
+  --mute:#5d746e;
+  --paper:#eef4f1;
+  --card:#fff;
+  --line:#d5e2dd;
+  --bull:#0e8f78;
+  --bull-d:#0a6b5a;
+  --bull-bg:#e6f6f1;
+  --bear:#d6453d;
+  --bear-d:#a82e27;
+  --bear-bg:#fdecea;
+  --amber:#e3a02f;
+  --amber-bg:#fef5e7;
+  --blue:#3a78c2;
+  --r:16px;
+  --shadow-sm:0 2px 8px rgba(20,48,43,0.04);
+  --shadow-md:0 6px 16px rgba(20,48,43,0.06);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font:15px/1.5 "DM Sans",system-ui,sans-serif;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px);
+  background-size:100% 32px;
+  background-attachment:local;
+  overflow-x:hidden;
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* Strip number input triangles across all browsers */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.wrap{
+  max-width:1280px;
+  margin:0 auto;
+  padding:24px 16px 48px;
+  width:100%;
+}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:24px}
+h1{font:700 clamp(30px,5vw,44px)/1 Kalam,cursive;margin:0;color:var(--bull-d)}
+h1 small{display:block;font:400 14px "DM Sans";color:var(--mute);margin-top:6px}
+h2{font:700 22px/1.2 Kalam,cursive;margin:0 0 12px}
+
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{border:1.5px solid var(--bull);background:#fff;color:var(--bull-d);padding:8px 16px;border-radius:999px;font-weight:700;transition:all .15s}
+.btn:hover{background:#e3f4ef}
+.btn.pri{background:var(--bull);color:#fff}.btn.pri:hover{background:var(--bull-d)}
+.chip{padding:6px 14px;border-radius:999px;font-size:13px;font-weight:700;background:#fdeeda;color:#8a5a0a}
+.chip.ok{background:#d9f3ea;color:var(--bull-d)}
+
+.layout{
+  display:grid;
+  grid-template-columns:minmax(300px,380px) minmax(0, 1fr);
+  gap:20px;
+  align-items:start;
+}
+@media(max-width:960px){.layout{grid-template-columns:1fr}}
+
+.card{
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r);
+  padding:22px;
+  box-shadow:var(--shadow-sm);
+}
+.form{position:sticky;top:16px}
+@media(max-width:960px){.form{position:static}}
+
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);font-weight:500}
+input[type=date],input[type=number],textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:9px 10px;background:#fbfdfc;color:var(--ink)}
+textarea{resize:vertical;min-height:70px}
+
+.sec{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px;font-weight:700}
+.sec span{font-weight:500;font-size:13px;color:var(--mute)}
+
+.tg{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 12px;margin-bottom:6px;border:1.5px solid var(--line);border-radius:10px;background:#fff;transition:all .15s}
+.tg i{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:13px;color:#fff}
+.tg.on{background:var(--bull-bg);border-color:var(--bull)}
+.tg.on i{background:var(--bull);border-color:var(--bull)}
+.tg.on i::before{content:"✓"}
+.tg.rule.off{background:var(--bear-bg);border-color:var(--bear)}
+.tg.rule.off i{background:var(--bear);border-color:var(--bear)}
+.tg.rule.off i::before{content:"✕"}
+.tg input{
+  width:68px;
+  margin-left:auto;
+  padding:4px 8px;
+  border-radius:8px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  font-weight:600;
+  text-align:center;
+}
+.tg input:focus{border-color:var(--bull);outline:none}
+
+.marks{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mk{padding:10px 0;border-radius:10px;border:1.5px solid var(--line);background:#fff;font:700 20px Kalam}
+.mk.on{color:#fff;transform:translateY(-2px);box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.mk[data-v="1"].on{background:var(--bear);border-color:var(--bear)}.mk[data-v="2"].on{background:#e57a3a;border-color:#e57a3a}
+.mk[data-v="3"].on{background:var(--amber);border-color:var(--amber)}.mk[data-v="4"].on{background:#52b58a;border-color:#52b58a}
+.mk[data-v="5"].on{background:var(--bull);border-color:var(--bull)}
+
+.score{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:var(--paper);margin-bottom:10px}
+.ring{--p:0;width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--bull) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;transition:background .2s}
+.ring b{width:36px;height:36px;border-radius:50%;background:var(--paper);display:grid;place-items:center;font-size:13px}
+.save{width:100%;margin-top:14px;padding:13px;border-radius:12px;border:0;background:var(--bull);color:#fff;font-weight:700;font-size:16px;box-shadow:0 3px 0 var(--bull-d)}
+.save:hover{background:var(--bull-d)}
+
+/* ---------- SINGLE-ROW STATS BAR ---------- */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(120px,1fr));
+  gap:12px;
+  margin-bottom:20px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+.stats::-webkit-scrollbar{display:none}
+
+.st{
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r);
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:84px;
+  box-shadow:var(--shadow-sm);
+  position:relative;
+}
+.st-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+}
+.st small{color:var(--mute);font-size:12px;font-weight:600;white-space:nowrap}
+.st b{display:block;font:700 22px/1.2 Kalam;margin-top:4px;white-space:nowrap}
+.pos{color:var(--bull)}.neg{color:var(--bear)}
+
+/* Seamless Capital Editor */
+.st-head-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.st-edit-btn{
+  background:transparent;
+  border:1px solid transparent;
+  padding:3px;
+  border-radius:6px;
+  color:var(--mute);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.st-edit-btn:hover{
+  background:var(--paper);
+  color:var(--bull-d);
+  border-color:var(--line);
+}
+.st-edit-btn svg{width:14px;height:14px}
+
+.cap-val-wrap{
+  position:relative;
+  margin-top:4px;
+  display:flex;
+  align-items:center;
+}
+.cap-val-wrap b{
+  cursor:pointer;
+  border-bottom:1.5px dashed transparent;
+  transition:all .15s ease;
+}
+.cap-val-wrap b:hover{
+  border-color:var(--mute);
+  color:var(--bull-d);
+}
+
+.cap-inline-input{
+  display:none;
+  width:100%;
+  font:700 19px/1.2 Kalam;
+  color:var(--bull-d);
+  background:var(--bull-bg);
+  border:1.5px solid var(--bull);
+  border-radius:6px;
+  padding:2px 6px;
+  margin-top:2px;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(14,143,120,0.15);
+}
+.cap-inline-input.active{display:block}
+
+.cap-hint{
+  font-size:10px;
+  color:var(--mute);
+  display:none;
+  margin-top:2px;
+  font-weight:600;
+}
+.cap-hint.active{display:block}
+
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.mhead-left{display:flex;align-items:center;gap:12px}
+.mhead h2{margin:0;letter-spacing:-0.5px}
+
+.nav{
+  border:1.5px solid var(--line);
+  background:#fff;
+  border-radius:50%;
+  width:38px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all .15s cubic-bezier(.4,0,.2,1);
+  color:var(--ink);
+}
+.nav svg{width:18px;height:18px;stroke-width:2.2;transition:transform .15s}
+.nav:hover{
+  background:var(--bull-bg);
+  border-color:var(--bull);
+  color:var(--bull-d);
+  transform:scale(1.04);
+}
+.nav:active{transform:scale(0.96)}
+
+/* Zoom / Fullscreen Button */
+.zoom-btn{
+  border:1.5px solid var(--line);
+  background:#fff;
+  color:var(--mute);
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12.5px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:all .15s ease;
+}
+.zoom-btn:hover{
+  border-color:var(--bull);
+  color:var(--bull-d);
+  background:var(--bull-bg);
+}
+.zoom-btn svg{width:15px;height:15px}
+
+/* ---------- DYNAMIC AUTO-SIZING HABIT GRID ---------- */
+.table-viewport-wrapper{
+  position:relative;
+  border-radius:14px;
+  background:#fff;
+  border:1.5px solid var(--line);
+}
+.scroll{
+  overflow-x:auto;
+  overflow-y:hidden;
+  scroll-behavior:smooth;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  border-radius:14px;
+  position:relative;
+}
+.scroll::-webkit-scrollbar{display:none}
+
+.g{
+  display:grid;
+  grid-template-columns: max-content repeat(var(--n), minmax(36px, 1fr));
+  gap:5px;
+  padding:14px;
+  width:max-content;
+  min-width:100%;
+}
+
+.gl{
+  position:sticky;
+  left:0;
+  z-index:4;
+  font-size:13px;
+  font-weight:600;
+  padding:0 14px;
+  background:#f4f8f6;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  box-shadow:5px 0 12px rgba(20,48,43,0.05);
+  white-space:nowrap;
+  user-select:none;
+  min-height:36px;
+}
+.gl.hdr{
+  background:#e1ede8;
+  font-weight:700;
+  color:var(--bull-d);
+}
+
+.gh{
+  border:0;
+  background:#eaf2ef;
+  color:var(--ink);
+  border-radius:8px;
+  font-size:12px;
+  font-weight:700;
+  height:36px;
+  min-width:36px;
+  padding:0 4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .15s;
+}
+.gh:hover{background:#d5e7e1}
+.gh.sel{background:var(--bull);color:#fff;box-shadow:0 2px 6px rgba(14,143,120,0.35)}
+.gh.today{box-shadow:inset 0 0 0 2px var(--amber);font-weight:800}
+
+.c{
+  height:36px;
+  min-width:36px;
+  border-radius:8px;
+  background:#f6f9f8;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  font-weight:700;
+  color:#fff;
+  transition:transform .12s ease;
+}
+.c:hover{transform:scale(1.08)}
+.c.y{background:var(--bull);box-shadow:0 2px 6px rgba(14,143,120,0.2)}
+.c.n{background:var(--bear);box-shadow:0 2px 6px rgba(214,69,61,0.2)}
+.c.y::before{content:"✓"}
+.c.n::before{content:"✕"}
+.c.m1{background:var(--bear)}.c.m2{background:#e57a3a}.c.m3{background:var(--amber)}.c.m4{background:#52b58a}.c.m5{background:var(--bull)}
+
+.scroll-hint{
+  position:absolute;
+  right:16px;
+  bottom:14px;
+  background:rgba(20,48,43,0.85);
+  backdrop-filter:blur(6px);
+  color:#fff;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:11.5px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.18);
+  animation:scrollBounce 2s infinite ease-in-out;
+  transition:opacity .3s ease, visibility .3s ease;
+  z-index:10;
+}
+.scroll-hint svg{width:14px;height:14px;stroke-width:2.2;stroke:currentColor}
+.scroll-hint.hidden{opacity:0;visibility:hidden}
+
+@keyframes scrollBounce{
+  0%,100%{transform:translateX(0)}
+  50%{transform:translateX(5px)}
+}
+
+/* ---------- CUMULATIVE P&L CHART ---------- */
+.pnl-chart-box{
+  margin-top:24px;
+  background:#fbfcfa;
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  padding:16px;
+  position:relative;
+}
+.pnl-chart-header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.pnl-chart-header .title-group small{
+  color:var(--mute);
+  font-size:11.5px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+.pnl-chart-header .title-group h4{
+  margin:2px 0 0;
+  font-size:16px;
+  font-weight:700;
+}
+.pnl-quick-stats{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.pnl-pill{
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:6px;
+  background:#fff;
+  border:1px solid var(--line);
+  display:flex;
+  gap:5px;
+  align-items:center;
+}
+.pnl-pill span{color:var(--mute);font-weight:600}
+.pnl-pill b{font-weight:700}
+
+.chart-stage{
+  position:relative;
+  width:100%;
+  height:130px;
+}
+.chart-stage svg{
+  width:100%;
+  height:100%;
+  display:block;
+  overflow:visible;
+}
+
+.chart-tooltip{
+  position:absolute;
+  pointer-events:none;
+  background:var(--ink);
+  color:#fff;
+  padding:4px 9px;
+  border-radius:6px;
+  font-size:11.5px;
+  font-weight:600;
+  box-shadow:0 4px 10px rgba(0,0,0,0.2);
+  transform:translate(-50%, -120%);
+  opacity:0;
+  transition:opacity .15s ease;
+  white-space:nowrap;
+  z-index:20;
+}
+
+/* ---------- WEEKS CARDS ---------- */
+.weeks-wrap{margin-top:24px}
+.weeks-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.weeks{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;width:100%}
+.wk-card{background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;position:relative;transition:transform .15s ease,box-shadow .15s ease;overflow:hidden}
+.wk-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.wk-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line);background:#fafcfb}
+.wk-badge{display:flex;align-items:center;gap:10px}
+.wk-mascot{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:none}
+.wk-meta h3{margin:0;font:700 17px/1.2 Kalam;color:var(--ink)}
+.wk-meta span{font-size:11px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.4px}
+.wk-pnl{font-weight:700;font-size:14px;padding:4px 10px;border-radius:999px;background:var(--paper);border:1px solid var(--line)}
+.wk-pnl.pos{background:var(--bull-bg);color:var(--bull-d);border-color:#bce5d8}
+.wk-pnl.neg{background:var(--bear-bg);color:var(--bear);border-color:#f6c0be}
+.wk-body{display:grid;grid-template-columns:1fr 1fr;flex:1;background:#fff}
+@media(max-width:440px){.wk-body{grid-template-columns:1fr}}
+.wk-sec{padding:14px;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
+.wk-sec+.wk-sec{border-left:1px dashed var(--line)}
+@media(max-width:440px){.wk-sec+.wk-sec{border-left:0;border-top:1px dashed var(--line)}}
+.wk-sec-hdr{display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.wk-sec-hdr svg{width:14px;height:14px;flex:none}
+.wk-sec.bad .wk-sec-hdr{color:var(--bear-d)}
+.wk-sec.good .wk-sec-hdr{color:var(--bull-d)}
+.wk-log-item{display:flex;align-items:baseline;gap:6px;padding:5px 8px;background:#f9fbfb;border-radius:6px;border:1px solid #eef3f1;line-height:1.4;margin-bottom:4px}
+.wk-log-item b{font-size:11px;color:var(--mute);background:var(--paper);padding:1px 5px;border-radius:4px;flex:none}
+.wk-log-item span{color:var(--ink);word-break:break-word}
+.wk-empty{color:var(--mute);font-style:italic;padding:8px 0;margin:0;display:flex;align-items:center;gap:4px}
+
+/* ---------- FULLSCREEN CALENDAR MODAL ---------- */
+.cal-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(20,48,43,0.65);
+  backdrop-filter:blur(6px);
+  z-index:999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  animation:fadeInModal .2s ease;
+}
+.cal-modal.open{display:flex}
+@keyframes fadeInModal{
+  from{opacity:0;transform:scale(.98)}
+  to{opacity:1;transform:scale(1)}
+}
+.cal-modal-content{
+  background:#fff;
+  border-radius:20px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.22);
+  width:96vw;
+  max-width:1440px;
+  max-height:92vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1.5px solid var(--line);
+}
+.cal-modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 24px;
+  border-bottom:1.5px solid var(--line);
+  background:#fafcfb;
+}
+.cal-modal-header h3{
+  margin:0;
+  font:700 24px/1.2 Kalam;
+  color:var(--bull-d);
+}
+.cal-modal-close{
+  border:1.5px solid var(--line);
+  background:#fff;
+  border-radius:50%;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--mute);
+  transition:all .15s ease;
+}
+.cal-modal-close:hover{
+  background:var(--bear-bg);
+  border-color:var(--bear);
+  color:var(--bear);
+}
+.cal-modal-close svg{width:18px;height:18px;stroke-width:2.2}
+.cal-modal-body{
+  padding:20px;
+  overflow:auto;
+  flex:1;
+}
+.cal-modal-body .g{
+  width:100%;
+}
+.cal-modal-body .gh,
+.cal-modal-body .c{
+  min-width:0;
+  width:100%;
+}
+
+footer{text-align:center;margin-top:36px;font:700 22px Kalam;color:var(--bull-d)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,80px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;transition:transform .25s;z-index:1000}
+.toast.show{transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <h1>My Trading Journal<small>Plan · Execute · Review · Improve</small></h1>
+ <div class="bar">
+  <span class="chip" id="chip">Not linked to Excel</span>
+  <button class="btn pri" id="open">Open Excel file</button>
+  <button class="btn" id="new">New journal</button>
+  <button class="btn" id="dl">Download .xlsx</button>
+ </div>
+</header>
+
+<div class="layout">
+ <form class="card form" id="form" autocomplete="off">
+  <h2>Log your day</h2>
+  <div class="row">
+   <label class="f">Date<input type="date" id="date" required></label>
+   <label class="f">Trades<input type="number" id="trades" min="0" step="1" placeholder="0"></label>
+   <label class="f">P&amp;L (₹)<input type="number" id="pnl" step="any" placeholder="0"></label>
+  </div>
+  <div class="score"><div class="ring" id="ring"><b id="rn">0/10</b></div><div><b>Discipline today</b><br><span style="color:var(--mute);font-size:13px" id="rt">Tick what you followed</span></div></div>
+  <div class="sec">5 steps trading setup <span>before entry</span></div>
+  <div id="steps"></div>
+  <div class="sec">Rules to follow <span>tap again if you broke it</span></div>
+  <div id="rules"></div>
+  <div class="sec">Today's mark</div>
+  <div class="marks" id="marks"></div>
+  <div class="sec">My mistakes</div>
+  <textarea id="bad" placeholder="What went wrong today?"></textarea>
+  <div class="sec">My good things</div>
+  <textarea id="good" placeholder="What did you do well?"></textarea>
+  <button class="save" type="submit">Save today's record</button>
+ </form>
+
+ <main>
+  <!-- 6 Stats in One Row -->
+  <div class="stats" id="stats"></div>
+  
+  <div class="card">
+   <div class="mhead">
+     <div class="mhead-left">
+       <button class="nav" id="prev" aria-label="Previous month">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+       </button>
+       <h2 id="mlabel"></h2>
+       <button class="nav" id="next" aria-label="Next month">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+       </button>
+     </div>
+     <button type="button" class="zoom-btn" id="zoomBtn" title="Full screen view">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+         <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+       </svg>
+       <span>Zoom</span>
+     </button>
+   </div>
+
+   <!-- TABLE CONTAINER WITH FIXED STICKY HEADERS & HIDDEN SCROLLBAR -->
+   <div class="table-viewport-wrapper">
+     <div class="scroll" id="scrollContainer">
+       <div class="g" id="grid"></div>
+     </div>
+     
+     <!-- Floating Swipe/Scroll Hint Indicator -->
+     <div class="scroll-hint" id="scrollHint">
+       <span>Scroll dates</span>
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+     </div>
+   </div>
+
+   <!-- ENHANCED CUMULATIVE P&L CHART -->
+   <div class="pnl-chart-box">
+     <div class="pnl-chart-header">
+       <div class="title-group">
+         <small>Equity Growth</small>
+         <h4>Cumulative P&amp;L this month</h4>
+       </div>
+       <div class="pnl-quick-stats" id="pnlQuickStats"></div>
+     </div>
+     <div class="chart-stage" id="chartStage">
+       <div id="curve"></div>
+       <div class="chart-tooltip" id="chartTooltip"></div>
+     </div>
+   </div>
+  </div>
+
+  <div class="weeks-wrap">
+    <div class="weeks-title">
+      <h2>Weekly Debriefs</h2>
+      <span style="font-size:13px;color:var(--mute)">Synthesized lessons &amp; adjustments</span>
+    </div>
+    <div class="weeks" id="weeks"></div>
+  </div>
+ </main>
+</div>
+
+<!-- FULLSCREEN CALENDAR MODAL -->
+<div class="cal-modal" id="calModal" role="dialog" aria-modal="true" aria-labelledby="modalLabel">
+  <div class="cal-modal-content">
+    <div class="cal-modal-header">
+      <h3 id="modalLabel">Calendar View</h3>
+      <button class="cal-modal-close" id="closeModal" aria-label="Close full view">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="cal-modal-body">
+      <div class="g" id="modalGrid"></div>
+    </div>
+  </div>
+</div>
+
+<footer>Less trades = Better you</footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const STEPS=['Entry only on my setup','At least 2 additional confirmations','Stoploss is justified','Risk per trade (%)','I will go for my risk-reward ratio'];
+const RULES=['No overtrading','Minimum 1:3 RR','Entry on setup','Either SL or TGT','Avoid fear and greed'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let E={},S={capital:100000},fh=null,view=new Date(),cur=null;
+const ymd=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const TODAY=ymd(new Date());
+const inr=n=>(n<0?'−':n>0?'+':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const blank=date=>({date,trades:'',pnl:'',risk:'',steps:[0,0,0,0,0],rules:[1,1,1,1,1],mark:0,bad:'',good:''});
+
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2600)}
+function chip(){const c=$('#chip');c.textContent=fh?'Saving to '+fh.name:'Not linked to Excel';c.className='chip'+(fh?' ok':'')}
+
+const ICONS = {
+  bull: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l3 3m13-3l-3 3M6 13a6 6 0 0 0 12 0v-2H6v2zM9 13v1m6-1v1"/></svg>`,
+  owl: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M5 4l4 4m10-4l-4 4"/><circle cx="9" cy="13" r="1.5"/><circle cx="15" cy="13" r="1.5"/><path d="M12 15l-1 2h2z"/></svg>`,
+  lion: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 5v2m0 10v2M5 12h2m10 0h2m-9.5-4.5l1.5 1.5m6 6l1.5 1.5m-9 0l1.5-1.5m6-6l1.5-1.5"/></svg>`,
+  shield: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  sparkle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+};
+
+/* ---------- FORM BUILD & ACTIONS ---------- */
+function build(){
+ $('#steps').innerHTML=STEPS.map((t,i)=>`<button type="button" class="tg" data-s="${i}"><i></i>${t}${i==3?'<input type="number" id="risk" min="0" max="100" step="0.1" placeholder="%" aria-label="Risk percent per trade">':''}</button>`).join('');
+ $('#rules').innerHTML=RULES.map((t,i)=>`<button type="button" class="tg rule on" data-r="${i}"><i></i>${t}</button>`).join('');
+ $('#marks').innerHTML=[1,2,3,4,5].map(v=>`<button type="button" class="mk" data-v="${v}" aria-label="Mark ${v}">${v}</button>`).join('');
+ 
+ // Enforce strict 0 to 100 validation on Risk input
+ const riskInput = $('#risk');
+ riskInput.addEventListener('input', e=>{
+   let val = parseFloat(e.target.value);
+   if(val > 100) e.target.value = 100;
+   else if(val < 0) e.target.value = 0;
+ });
+}
+function fill(date){
+ cur=JSON.parse(JSON.stringify(E[date]||blank(date)));
+ $('#date').value=date;$('#trades').value=cur.trades;$('#pnl').value=cur.pnl;$('#risk').value=cur.risk;
+ $('#bad').value=cur.bad;$('#good').value=cur.good;paint();
+}
+function paint(){
+ document.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('on',!!cur.steps[b.dataset.s]));
+ document.querySelectorAll('[data-r]').forEach(b=>{const v=!!cur.rules[b.dataset.r];b.classList.toggle('on',v);b.classList.toggle('off',!v)});
+ document.querySelectorAll('.mk').forEach(b=>b.classList.toggle('on',+b.dataset.v===cur.mark));
+ const n=cur.steps.reduce((a,b)=>a+b,0)+cur.rules.reduce((a,b)=>a+b,0);
+ $('#ring').style.setProperty('--p',n*10);$('#rn').textContent=n+'/10';
+ $('#rt').textContent=n==10?'Perfect day. Keep this standard.':n>=7?'Solid. Look at what slipped.':'Review before the next session.';
+}
+function collect(){
+ let rVal = $('#risk').value;
+ if(rVal !== ''){
+   let num = parseFloat(rVal);
+   if(num > 100) rVal = '100';
+   else if(num < 0) rVal = '0';
+ }
+ return {...cur,date:$('#date').value,trades:$('#trades').value,pnl:$('#pnl').value,risk:rVal,bad:$('#bad').value.trim(),good:$('#good').value.trim()};
+}
+document.addEventListener('click',e=>{
+ const s=e.target.closest('[data-s]'),r=e.target.closest('[data-r]'),m=e.target.closest('.mk');
+ if(s&&e.target.tagName!=='INPUT'){cur.steps[s.dataset.s]^=1;paint()}
+ if(r){cur.rules[r.dataset.r]^=1;paint()}
+ if(m){cur.mark=cur.mark==+m.dataset.v?0:+m.dataset.v;paint()}
+ const d=e.target.closest('[data-d]');if(d){
+   fill(d.dataset.d);
+   if($('#calModal').classList.contains('open')){
+     closeZoomModal();
+   }
+   scrollTo({top:0,behavior:'smooth'});
+ }
+});
+$('#date').addEventListener('change',e=>{const keep=collect();if(E[e.target.value])fill(e.target.value);else{cur={...cur,date:e.target.value};render()}});
+$('#form').addEventListener('submit',async e=>{
+ e.preventDefault();const r=collect();if(!r.date)return;
+ E[r.date]=r;cur=r;view=new Date(r.date+'T00:00');
+ local();render();
+ if(fh){try{await write();toast('Saved to '+fh.name)}catch(x){toast('Could not write the file. Saved in this browser.')}}
+ else toast('Saved in this browser. Link an Excel file to keep it there.');
+});
+addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key=='s'){e.preventDefault();$('#form').requestSubmit()}
+ if(e.key === 'Escape' && $('#calModal').classList.contains('open')){
+   closeZoomModal();
+ }
+});
+
+/* ---------- SCROLL INDICATOR CONTROLLER ---------- */
+const scrollContainer = $('#scrollContainer');
+const scrollHint = $('#scrollHint');
+
+function checkScrollHint(){
+  if(!scrollContainer || !scrollHint) return;
+  const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+  if(scrollContainer.scrollLeft > 35 || maxScroll <= 10) {
+    scrollHint.classList.add('hidden');
+  } else {
+    scrollHint.classList.remove('hidden');
+  }
+}
+scrollContainer.addEventListener('scroll', checkScrollHint, {passive:true});
+scrollContainer.addEventListener('mouseenter', ()=>scrollHint.classList.add('hidden'));
+scrollContainer.addEventListener('mouseleave', checkScrollHint);
+
+/* ---------- DASHBOARD RENDER ---------- */
+function monthEntries(){const p=ymd(view).slice(0,7);return Object.values(E).filter(x=>x.date.startsWith(p)).sort((a,b)=>a.date<b.date?-1:1)}
+
+function generateGridHtml(y, m, n){
+ let h='<div class="gl hdr">Rules to follow</div>';
+ const key=d=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+ for(let d=1;d<=n;d++){
+   const k=key(d);
+   h+=`<button type="button" class="gh${k==$('#date').value?' sel':''}${k==TODAY?' today':''}" data-d="${k}" aria-label="Open ${k}">${d}</button>`;
+ }
+ RULES.forEach((t,i)=>{
+   h+=`<div class="gl">${t}</div>`;
+   for(let d=1;d<=n;d++){
+     const e=E[key(d)];
+     h+=`<div class="c ${e?(e.rules[i]?'y':'n'):''}"></div>`;
+   }
+ });
+ h+='<div class="gl hdr">Mark (1–5)</div>';
+ for(let d=1;d<=n;d++){
+   const e=E[key(d)];
+   h+=`<div class="c ${e&&e.mark?'m'+e.mark:''}">${e&&e.mark?e.mark:''}</div>`;
+ }
+ return h;
+}
+
+function render(){
+ const y=view.getFullYear(),m=view.getMonth(),n=new Date(y,m+1,0).getDate();
+ const monthTitle = MONTHS[m]+' '+y;
+ $('#mlabel').textContent=monthTitle;
+ $('#modalLabel').textContent=monthTitle + ' — Habit Calendar';
+ 
+ const gridHtml = generateGridHtml(y, m, n);
+ 
+ $('#grid').innerHTML=gridHtml;
+ $('#grid').style.setProperty('--n',n);
+ 
+ const modalGrid = $('#modalGrid');
+ if(modalGrid){
+   modalGrid.innerHTML = gridHtml;
+   modalGrid.style.setProperty('--n',n);
+ }
+ setTimeout(checkScrollHint, 50);
+
+ // Calculate metrics
+ const me=monthEntries(),pnl=me.reduce((a,e)=>a+(+e.pnl||0),0),all=Object.values(E).reduce((a,e)=>a+(+e.pnl||0),0);
+ const green=me.filter(e=>+e.pnl>0).length,pnlDays=me.filter(e=>e.pnl!=='').length;
+ const marks=me.filter(e=>e.mark),avg=marks.length?marks.reduce((a,e)=>a+e.mark,0)/marks.length:0;
+ const kept=me.reduce((a,e)=>a+e.rules.reduce((x,y)=>x+y,0),0),disc=me.length?Math.round(kept/(me.length*5)*100):0;
+ let streak=0;const sorted=Object.values(E).sort((a,b)=>a.date<b.date?1:-1);
+ for(const e of sorted){if(e.rules.every(Boolean))streak++;else break}
+ 
+ const cls=v=>v>0?'pos':v<0?'neg':'';
+ const totalCap=Math.round(S.capital+all);
+
+ /* Single Row Stats with Inline Capital Editor */
+ $('#stats').innerHTML=`
+  <div class="st">
+    <div class="st-head"><small>Month P&amp;L</small></div>
+    <b class="${cls(pnl)}">${inr(pnl)}</b>
+  </div>
+
+  <div class="st" id="capCard">
+    <div class="st-head">
+      <small>Capital now</small>
+      <div class="st-head-actions">
+        <button type="button" class="st-edit-btn" id="editCapBtn" title="Change starting capital" aria-label="Edit starting capital">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="cap-val-wrap">
+      <b id="capDisplay" title="Click to edit">₹${totalCap.toLocaleString('en-IN')}</b>
+      <input type="number" id="capInput" class="cap-inline-input" value="${S.capital}" step="any" placeholder="Start capital">
+    </div>
+    <span class="cap-hint" id="capHint">Press Enter ↵ to save</span>
+  </div>
+
+  <div class="st">
+    <div class="st-head"><small>Green days</small></div>
+    <b>${green}/${pnlDays}</b>
+  </div>
+
+  <div class="st">
+    <div class="st-head"><small>Rules followed</small></div>
+    <b>${disc}%</b>
+  </div>
+
+  <div class="st">
+    <div class="st-head"><small>Average mark</small></div>
+    <b>${avg?avg.toFixed(1):'–'}<span style="font-size:14px;color:var(--mute)"> /5</span></b>
+  </div>
+
+  <div class="st">
+    <div class="st-head"><small>Clean streak</small></div>
+    <b>${streak}d</b>
+  </div>`;
+
+ const editBtn=$('#editCapBtn');
+ const capDisplay=$('#capDisplay');
+ const capInput=$('#capInput');
+ const capHint=$('#capHint');
+
+ function openCapEdit(){
+   capDisplay.style.display='none';
+   capInput.classList.add('active');
+   capHint.classList.add('active');
+   capInput.value = S.capital;
+   capInput.focus();
+   capInput.select();
+ }
+
+ function saveCapital(){
+   const val=+capInput.value;
+   if(!isNaN(val) && val > 0 && val !== S.capital){
+     S.capital=val;
+     local();
+     render();
+     if(fh)write().catch(()=>{});
+     toast('Starting capital updated');
+   } else {
+     capInput.classList.remove('active');
+     capHint.classList.remove('active');
+     capDisplay.style.display='block';
+   }
+ }
+
+ editBtn.onclick=openCapEdit;
+ capDisplay.onclick=openCapEdit;
+
+ capInput.onkeydown=e=>{
+   if(e.key==='Enter'){
+     e.preventDefault();
+     capInput.blur();
+   } else if(e.key==='Escape'){
+     capInput.value=S.capital;
+     capInput.classList.remove('active');
+     capHint.classList.remove('active');
+     capDisplay.style.display='block';
+   }
+ };
+
+ capInput.onblur=saveCapital;
+
+ /* Interactive Cumulative P&L Area Chart */
+ renderCumulativeCurve(me, n, y, m);
+
+ /* Week Cards */
+ const weekThemes = [
+   { title: 'Week 1', days: 'Days 01–07', icon: ICONS.shield, bg: '#eef6f3', color: '#0e8f78' },
+   { title: 'Week 2', days: 'Days 08–14', icon: ICONS.owl, bg: '#fdf3e7', color: '#d8831b' },
+   { title: 'Week 3', days: 'Days 15–21', icon: ICONS.lion, bg: '#eef3fb', color: '#3a78c2' },
+   { title: 'Week 4+', days: 'Days 22–End', icon: ICONS.bull, bg: '#f4edf9', color: '#8248ab' }
+ ];
+ const ranges=[[1,7],[8,14],[15,21],[22,31]];
+ $('#weeks').innerHTML=ranges.map(([a,b],i)=>{
+  const theme = weekThemes[i];
+  const ws=me.filter(e=>{const d=+e.date.slice(8);return d>=a&&d<=b});
+  const list=(k)=>{
+    const items = ws.filter(e=>e[k]);
+    if(!items.length) return `<p class="wk-empty">None recorded</p>`;
+    return items.map(e=>`<div class="wk-log-item"><b>${+e.date.slice(8)}th</b><span>${esc(e[k])}</span></div>`).join('');
+  };
+  const wp=ws.reduce((s,e)=>s+(+e.pnl||0),0);
+  const pnlClass = wp > 0 ? 'pos' : wp < 0 ? 'neg' : '';
+  const pnlDisplay = ws.length ? `<span class="wk-pnl ${pnlClass}">${inr(wp)}</span>` : `<span class="wk-pnl">0 Trades</span>`;
+
+  return `
+    <article class="wk-card">
+      <div class="wk-top">
+        <div class="wk-badge">
+          <div class="wk-mascot" style="background:${theme.bg};color:${theme.color}">${theme.icon}</div>
+          <div class="wk-meta">
+            <h3>${theme.title}</h3>
+            <span>${theme.days}</span>
+          </div>
+        </div>
+        ${pnlDisplay}
+      </div>
+      <div class="wk-body">
+        <section class="wk-sec bad">
+          <div class="wk-sec-hdr">${ICONS.warning} Pitfalls &amp; Mistakes</div>
+          ${list('bad')}
+        </section>
+        <section class="wk-sec good">
+          <div class="wk-sec-hdr">${ICONS.sparkle} Disciplined Wins</div>
+          ${list('good')}
+        </section>
+      </div>
+    </article>
+  `;
+ }).join('');
+}
+
+/* ---------- CALENDAR MODAL CONTROLS ---------- */
+const calModal = $('#calModal');
+const zoomBtn = $('#zoomBtn');
+const closeModal = $('#closeModal');
+
+function openZoomModal(){
+  calModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeZoomModal(){
+  calModal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+zoomBtn.onclick = openZoomModal;
+closeModal.onclick = closeZoomModal;
+calModal.onclick = e=>{
+  if(e.target === calModal) closeZoomModal();
+};
+
+function renderCumulativeCurve(me, daysInMonth, y, m){
+  const chartEl=$('#curve');
+  const tooltip=$('#chartTooltip');
+  const quickStats=$('#pnlQuickStats');
+  
+  if(!me.length){
+    chartEl.innerHTML=`<p style="color:var(--mute);margin:24px 0 10px;text-align:center;font-size:13.5px">No trades recorded yet for ${MONTHS[m]} ${y}. Log a trade to view your equity curve.</p>`;
+    quickStats.innerHTML='';
+    return;
+  }
+
+  let running=0;
+  const dataPoints=[];
+  let peak=-Infinity, drawdown=Infinity;
+
+  for(let d=1; d<=daysInMonth; d++){
+    const k=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entry=E[k];
+    if(entry && entry.pnl!==''){
+      running += (+entry.pnl || 0);
+    }
+    dataPoints.push({ day:d, date:k, val:running, hasEntry:!!entry });
+    if(running > peak) peak = running;
+    if(running < drawdown) drawdown = running;
+  }
+
+  const finalPnl = running;
+  const isNetPos = finalPnl >= 0;
+  const color = isNetPos ? '#0e8f78' : '#d6453d';
+  const gradId = isNetPos ? 'bullGrad' : 'bearGrad';
+
+  quickStats.innerHTML=`
+    <div class="pnl-pill"><span>Peak:</span> <b style="color:var(--bull)">${inr(Math.max(peak, 0))}</b></div>
+    <div class="pnl-pill"><span>Low:</span> <b style="color:var(--bear)">${inr(Math.min(drawdown, 0))}</b></div>
+    <div class="pnl-pill"><span>Close:</span> <b class="${finalPnl>0?'pos':finalPnl<0?'neg':''}">${inr(finalPnl)}</b></div>
+  `;
+
+  const vals=dataPoints.map(p=>p.val);
+  const mx=Math.max(...vals,0);
+  const mn=Math.min(...vals,0);
+  const range=(mx-mn)||1000;
+  
+  const W=700, H=120, PAD_TOP=14, PAD_BTM=18;
+  const innerH=H-PAD_TOP-PAD_BTM;
+
+  const getY=v=>H-PAD_BTM-((v-mn)/range)*innerH;
+  const getX=i=>(i/(dataPoints.length-1))*W;
+  const zeroY=getY(0);
+
+  const coords=dataPoints.map((p,i)=>[getX(i), getY(p.val)]);
+  const polylineStr=coords.map(c=>c.join(',')).join(' ');
+  const areaPathStr=`M ${coords[0][0]},${zeroY} `+coords.map(c=>`L ${c[0]},${c[1]}`).join(' ')+` L ${coords[coords.length-1][0]},${zeroY} Z`;
+
+  chartEl.innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="pnlSvg">
+      <defs>
+        <linearGradient id="bullGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0e8f78" stop-opacity="0.32"/>
+          <stop offset="100%" stop-color="#0e8f78" stop-opacity="0.0"/>
+        </linearGradient>
+        <linearGradient id="bearGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d6453d" stop-opacity="0.0"/>
+          <stop offset="100%" stop-color="#d6453d" stop-opacity="0.32"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}" stroke="#cfded7" stroke-dasharray="4 4" stroke-width="1.2"/>
+      <path d="${areaPathStr}" fill="url(#${gradId})" />
+      <polyline fill="none" stroke="${color}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" points="${polylineStr}" vector-effect="non-scaling-stroke"/>
+      <line id="hoverBar" x1="0" y1="${PAD_TOP}" x2="0" y2="${H-PAD_BTM}" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 3" style="opacity:0;pointer-events:none;"/>
+      <circle id="hoverPoint" r="4.5" fill="${color}" stroke="#fff" stroke-width="2" style="opacity:0;pointer-events:none;"/>
+    </svg>
+  `;
+
+  const svg=$('#pnlSvg');
+  const hoverBar=$('#hoverBar');
+  const hoverPoint=$('#hoverPoint');
+  const stage=$('#chartStage');
+
+  stage.onmousemove=e=>{
+    const rect=svg.getBoundingClientRect();
+    const clientX=e.clientX-rect.left;
+    if(clientX<0 || clientX>rect.width) return;
+
+    const ratio=clientX/rect.width;
+    const index=Math.min(Math.max(Math.round(ratio*(dataPoints.length-1)), 0), dataPoints.length-1);
+    const target=dataPoints[index];
+    const pt=coords[index];
+
+    hoverBar.setAttribute('x1', pt[0]);
+    hoverBar.setAttribute('x2', pt[0]);
+    hoverBar.style.opacity='1';
+
+    hoverPoint.setAttribute('cx', pt[0]);
+    hoverPoint.setAttribute('cy', pt[1]);
+    hoverPoint.setAttribute('fill', target.val>=0?'#0e8f78':'#d6453d');
+    hoverPoint.style.opacity='1';
+
+    tooltip.style.opacity='1';
+    tooltip.style.left=`${(pt[0]/W)*100}%`;
+    tooltip.style.top=`${(pt[1]/H)*100}%`;
+    tooltip.innerHTML=`Day ${target.day}: <b>${inr(target.val)}</b>`;
+  };
+
+  stage.onmouseleave=()=>{
+    hoverBar.style.opacity='0';
+    hoverPoint.style.opacity='0';
+    tooltip.style.opacity='0';
+  };
+}
+
+$('#prev').onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()-1,1);render()};
+$('#next').onclick=()=>{view=new Date(view.getFullYear(),view.getMonth()+1,1);render()};
+
+/* ---------- EXCEL AND LOCAL STORAGE ---------- */
+const local=()=>{try{localStorage.setItem('tj',JSON.stringify({E,S}))}catch(e){}};
+const COLS=e=>({'Date':e.date,'Trades':e.trades,'P&L (₹)':e.pnl,'Risk %':e.risk,
+ ...Object.fromEntries(STEPS.map((t,i)=>['Setup: '+t,e.steps[i]?1:0])),
+ ...Object.fromEntries(RULES.map((t,i)=>['Rule: '+t,e.rules[i]?1:0])),
+ 'Mark (1-5)':e.mark||'','My mistakes':e.bad,'My good things':e.good});
+function wb(){
+ const rows=Object.values(E).sort((a,b)=>a.date<b.date?-1:1).map(COLS);
+ const book=XLSX.utils.book_new();
+ const ws=rows.length?XLSX.utils.json_to_sheet(rows):XLSX.utils.json_to_sheet([COLS(blank(''))]);
+ ws['!cols']=Object.keys(COLS(blank(''))).map((k,i)=>({wch:i<4?12:i>=14?40:18}));
+ XLSX.utils.book_append_sheet(book,ws,'Daily');
+ XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([['Starting capital',S.capital]]),'Settings');
+ return book;
+}
+function load(buf){
+ const book=XLSX.read(buf,{type:'array'}),ws=book.Sheets['Daily']||book.Sheets[book.SheetNames[0]];
+ const out={};
+ XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(r=>{
+  let d=r['Date'];if(!d)return;if(d instanceof Date)d=ymd(d);d=String(d).slice(0,10);
+  out[d]={date:d,trades:r['Trades'],pnl:r['P&L (₹)'],risk:r['Risk %'],
+   steps:STEPS.map(t=>+r['Setup: '+t]?1:0),rules:RULES.map(t=>r['Rule: '+t]===0||r['Rule: '+t]==='0'?0:1),
+   mark:+r['Mark (1-5)']||0,bad:String(r['My mistakes']||''),good:String(r['My good things']||'')};
+ });
+ E=out;const st=book.Sheets['Settings'];if(st&&st['B1'])S.capital=+st['B1'].v||S.capital;
+ local();fill($('#date').value||TODAY);render();
+}
+async function write(){
+ const w=await fh.createWritable();await w.write(XLSX.write(wb(),{bookType:'xlsx',type:'array'}));await w.close();
+}
+const XT={types:[{description:'Excel workbook',accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']}}]};
+$('#open').onclick=async()=>{
+ try{
+  if(window.showOpenFilePicker){
+   [fh]=await showOpenFilePicker(XT);load(await(await fh.getFile()).arrayBuffer());chip();toast('Loaded '+Object.keys(E).length+' records from '+fh.name);
+  }else{const i=document.createElement('input');i.type='file';i.accept='.xlsx';i.onchange=async()=>{load(await i.files[0].arrayBuffer());toast('Imported. Use Download .xlsx to save changes.')};i.click()}
+ }catch(e){}
+};
+$('#new').onclick=async()=>{
+ try{
+  if(!window.showSaveFilePicker){toast('This browser cannot link files. Use Chrome or Edge, or Download .xlsx.');return}
+  fh=await showSaveFilePicker({suggestedName:'Trading_Journal.xlsx',...XT});await write();chip();toast('Created '+fh.name+' with your current records');
+ }catch(e){}
+};
+$('#dl').onclick=()=>{XLSX.writeFile(wb(),'Trading_Journal.xlsx')};
+
+/* ---------- INITIALIZE ---------- */
+build();
+try{const s=JSON.parse(localStorage.getItem('tj')||'null');if(s){E=s.E||{};S=s.S||S}}catch(e){}
+chip();fill(TODAY);render();
+</script>
+</body>
+</html>
